@@ -30,6 +30,7 @@
   "bundle": {
     "active": true,
     "targets": ["nsis"],
+    "icon": ["icons/icon.ico"],
     "publisher": "FastRename Contributors",
     "shortDescription": "极速文件重命名工具",
     "longDescription": "FastRename 是一款 Windows 桌面端本地文件重命名工具，支持精准编辑、即时落盘和运行期撤销。",
