@@ -56,15 +56,6 @@ export function FileTable({
 }: FileTableProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const previousEditingId = useRef<string | null>(null);
-  const currentEditingRef = useRef(editing);
-  const dragSelectionRef = useRef<{
-    anchorOffset: number;
-    fileId: string;
-  } | null>(null);
-
-  useEffect(() => {
-    currentEditingRef.current = editing;
-  }, [editing]);
 
   useEffect(() => {
     if (!editing || !inputRef.current) {
@@ -84,7 +75,7 @@ export function FileTable({
 
     const safeOffset = Math.min(editing.caretOffset, input.value.length);
     input.setSelectionRange(safeOffset, safeOffset);
-  }, [editing]);
+  }, [editing?.fileId]);
 
   const gridTemplateColumns = useMemo(
     () =>
@@ -98,49 +89,6 @@ export function FileTable({
     const clickX = clientX - rect.left - Number.parseFloat(style.paddingLeft || "0");
 
     return measureCaretOffset(text, clickX, element);
-  };
-
-  const applyDragSelection = (clientX: number) => {
-    const dragSelection = dragSelectionRef.current;
-    const input = inputRef.current;
-    const currentEditing = currentEditingRef.current;
-
-    if (!dragSelection || !input || currentEditing?.fileId !== dragSelection.fileId) {
-      return;
-    }
-
-    const currentOffset = getCaretOffset(input, clientX, currentEditing.draftStem);
-    const selectionStart = Math.min(dragSelection.anchorOffset, currentOffset);
-    const selectionEnd = Math.max(dragSelection.anchorOffset, currentOffset);
-
-    input.focus();
-    input.setSelectionRange(selectionStart, selectionEnd);
-  };
-
-  const beginDragSelection = (
-    event: React.MouseEvent<HTMLElement>,
-    file: FileEntry,
-    caretOffset: number
-  ) => {
-    dragSelectionRef.current = {
-      anchorOffset: caretOffset,
-      fileId: file.id
-    };
-
-    const handleMove = (moveEvent: MouseEvent) => {
-      window.requestAnimationFrame(() => applyDragSelection(moveEvent.clientX));
-    };
-
-    const handleUp = (upEvent: MouseEvent) => {
-      applyDragSelection(upEvent.clientX);
-      dragSelectionRef.current = null;
-      window.removeEventListener("mousemove", handleMove);
-      window.removeEventListener("mouseup", handleUp);
-    };
-
-    window.addEventListener("mousemove", handleMove);
-    window.addEventListener("mouseup", handleUp);
-    window.requestAnimationFrame(() => applyDragSelection(event.clientX));
   };
 
   if (files.length === 0) {
@@ -201,19 +149,13 @@ export function FileTable({
                 className={`file-table__cell file-table__cell--stem ${feedbackClass}`}
                 role="cell"
                 title={file.stem}
-                onMouseDown={(event) => {
-                  if (event.button !== 0) {
-                    return;
-                  }
-
-                  const caretOffset = getCaretOffset(event.currentTarget, event.clientX, file.stem);
-
+                onClick={(event) => {
                   if (isEditing) {
                     return;
                   }
 
+                  const caretOffset = getCaretOffset(event.currentTarget, event.clientX, file.stem);
                   onStartEdit(file, caretOffset);
-                  beginDragSelection(event, file, caretOffset);
                 }}
               >
                 {isEditing ? (
@@ -231,12 +173,6 @@ export function FileTable({
                         }
                       }}
                       onChange={(event) => {
-                        onDraftChange(
-                          event.currentTarget.value,
-                          event.currentTarget.selectionStart ?? event.currentTarget.value.length
-                        );
-                      }}
-                      onSelect={(event) => {
                         onDraftChange(
                           event.currentTarget.value,
                           event.currentTarget.selectionStart ?? event.currentTarget.value.length
